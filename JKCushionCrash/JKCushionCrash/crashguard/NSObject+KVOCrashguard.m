@@ -16,8 +16,8 @@
     dispatch_once(&onceToken, ^{
         @autoreleasepool {
             
-            [objc_getClass("NSObject") swizzleMethod:@selector(removeObserver:forKeyPath:) swizzledSelector:@selector(removeDasen:forKeyPath:)];
-            [objc_getClass("NSObject") swizzleMethod:@selector(addObserver:forKeyPath:options:context:) swizzledSelector:@selector(addDasen:forKeyPath:options:context:)];
+            [objc_getClass("NSObject") swizzleMethod:@selector(removeObserver:forKeyPath:) swizzledSelector:@selector(safe_removeObserver:forKeyPath:)];
+            [objc_getClass("NSObject") swizzleMethod:@selector(addObserver:forKeyPath:options:context:) swizzledSelector:@selector(safe_addObserver:forKeyPath:options:context:)];
             
         }
         
@@ -25,22 +25,22 @@
 }
 
 // 交换后的方法
-- (void)removeDasen:(NSObject *)observer forKeyPath:(NSString *)keyPath
+- (void)safe_removeObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath
 {
     if ([self observerKeyPath:keyPath observer:observer]) {
-        [self removeDasen:observer forKeyPath:keyPath];
+        [self safe_removeObserver:observer forKeyPath:keyPath];
     }
 }
 
 
 // 交换后的方法
-- (void)addDasen:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(void *)context
+- (void)safe_addObserver:(NSObject *)observer forKeyPath:(NSString *)keyPath options:(NSKeyValueObservingOptions)options context:(void *)context
 {
     
     objc_setAssociatedObject(self, "addObserverFlag", @YES, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     
     if (![self observerKeyPath:keyPath observer:observer]) {
-        [self addDasen:observer forKeyPath:keyPath options:options context:context];
+        [self safe_addObserver:observer forKeyPath:keyPath options:options context:context];
     }
 }
 
