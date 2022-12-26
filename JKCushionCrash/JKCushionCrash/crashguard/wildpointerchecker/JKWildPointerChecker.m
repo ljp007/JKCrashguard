@@ -2,18 +2,11 @@
 //  WildPointerChecker.m
 //  WildPointerCheckerDemo
 //
-//  Created by RenTongtong on 16/8/26.
+//  modify by Jacken on 16/8/26.
 //  Copyright © 2016年 hdurtt. All rights reserved.
 //
 
-//野指针探测实现
-//这个实现主要依据腾讯Bugly工程师:陈其锋的分享，在其代码中的主要思路是
-//1、通过fishhook替换C函数的free方法为自定义的safe_free，类似于Method Swizzling
-//2、在safe_free方法中对已经释放变量的内存，填充0x55，使已经释放变量不能访问，从而使某些野指针的crash从不必现安变成必现。
-//为了防止填充0x55的内存被新的数据内容填充，使野指针crash变成不必现，在这里采用的策略是，safe_free不释放这片内存，而是自己保留着，即safe_free方法中不会真的调用free。
-//同时为了防止系统内存过快消耗（因为要保留内存），需要在保留的内存大于一定值时释放一部分，防止被系统杀死，同时，在收到系统内存警告时，也需要释放一部分内存
-//
-//3、发生crash时，得到的崩溃信息有限，不利于问题排查，所以这里采用代理类（即继承自NSProxy的子类），重写消息转发的三个方法（参考这篇文章iOS-底层原理 14：消息流程分析之 动态方法决议 & 消息转发），以及NSObject的实例方法，来获取异常信息。但是这的话，还有一个问题，就是NSProxy只能做OC对象的代理，所以需要在safe_free中增加对象类型的判断
+
 
 
 #import "JKWildPointerChecker.h"
@@ -41,7 +34,7 @@ typedef struct unfreeList {
 }UNFREE_LIST, *PUNFREE_LIST;
 
 void (*orig_free)(void *);
-void myfree(void *p);
+void safe_free(void *p);
 PUNFREE_LIST createList();
 void addUnFreeMemToListSync(PUNFREE_LIST unfreeList, void *p);
 void freeMemInListSync(PUNFREE_LIST unfreeList, size_t freeNum);
@@ -77,7 +70,7 @@ void startWildPointerCheck()
     pthread_mutex_init(&global_mutex, NULL);
     //hook free
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        rebind_symbols((struct rebinding[1]){{"free", myfree, (void *)&orig_free}}, 1);
+        rebind_symbols((struct rebinding[1]){{"free", safe_free, (void *)&orig_free}}, 1);
     });
     
     isRunningWildPointerCheck = YES;
@@ -88,7 +81,7 @@ void stopWildPointerCheck()
     isRunningWildPointerCheck = NO;
 }
 
-void myfree(void *p)
+void safe_free(void *p)
 {
     if (!isRunningWildPointerCheck) {
         orig_free(p);

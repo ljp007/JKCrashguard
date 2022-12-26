@@ -2,7 +2,7 @@
 //  WPCZombieObject.m
 //  WildPointerCheckerDemo
 //
-//  Created by RenTongtong on 16/8/26.
+//  modify by Jacken on 2022/8/26.
 //  Copyright © 2016年 hdurtt. All rights reserved.
 //
 
